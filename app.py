@@ -397,7 +397,7 @@ if not st.session_state.app_started:
     col1, col2, col3 = st.columns([1.5, 1, 1.5])
     with col2:
         try:
-            logo_img = Image.open("logo_smart.jpeg")
+            logo_img = Image.open("logo_smart.png")
             st.image(logo_img, use_container_width=True)
         except FileNotFoundError:
             # Fallback icon block when logo missing
