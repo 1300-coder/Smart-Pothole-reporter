@@ -2,8 +2,12 @@
 PROJECT: Smart Pothole Reporter (Competition Edition)
 AUTHOR: High School AI Developer
 DESCRIPTION:
-    A production-grade Streamlit web application featuring a polished landing page,
-    live GPS telemetry, Gemini AI analysis, and automated email dispatch.
+    AI-powered pothole reporting system with:
+    - Live GPS
+    - Camera capture
+    - Gemini AI analysis
+    - EXIF geotagging
+    - Automatic authority alerts
 """
 
 # ==========================================
@@ -37,9 +41,14 @@ st.set_page_config(
 # ==========================================
 
 try:
-    GEMINI_API_KEY = st.secrets["GEMINI_API_KEY"]
 
-    GMAIL_USER = st.secrets["GMAIL_USER"]
+    GEMINI_API_KEY = st.secrets[
+        "GEMINI_API_KEY"
+    ]
+
+    GMAIL_USER = st.secrets[
+        "GMAIL_USER"
+    ]
 
     GMAIL_PASSWORD = st.secrets[
         "GMAIL_APP_PASSWORD"
@@ -127,10 +136,10 @@ def inject_styles():
     }
 
     .hero-title {
-        font-size: 4rem;
+        font-size: clamp(2.6rem, 7vw, 4rem);
         font-weight: 800;
-        text-align: center;
         line-height: 1;
+        text-align: center;
         margin-bottom: 1rem;
     }
 
@@ -142,11 +151,25 @@ def inject_styles():
         text-align: center;
         color: var(--text-secondary);
         line-height: 1.7;
-        margin-bottom: 2rem;
+        margin-bottom: 2.5rem;
+    }
+
+    .hero-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        background: rgba(232,255,71,0.08);
+        border: 1px solid rgba(232,255,71,0.25);
+        color: var(--accent);
+        padding: 6px 14px;
+        border-radius: 999px;
+        font-size: 12px;
+        margin-bottom: 1.5rem;
     }
 
     .section-heading {
-        font-size: 1.2rem;
+        font-size: 1.15rem;
         font-weight: 700;
         margin-bottom: 0.25rem;
     }
@@ -196,7 +219,7 @@ def inject_styles():
         border: none !important;
         border-radius: 12px !important;
         font-weight: 700 !important;
-        padding: 0.65rem 1.5rem !important;
+        padding: 0.7rem 1.5rem !important;
     }
 
     </style>
@@ -311,7 +334,7 @@ def send_notification_email(
 Latitude: {lat}
 Longitude: {lon}
 
-Maps:
+Google Maps:
 {maps_link}
 
 AI ANALYSIS:
@@ -352,6 +375,10 @@ if "app_started" not in st.session_state:
 
     st.session_state.app_started = False
 
+if "location_data" not in st.session_state:
+
+    st.session_state.location_data = None
+
 
 # ==========================================
 # LANDING PAGE
@@ -376,10 +403,18 @@ if not st.session_state.app_started:
         pass
 
     st.markdown("""
+    <div style="text-align:center">
+        <div class="hero-badge">
+            ◉ Edge AI · Live GPS · Gemini Vision
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("""
     <h1 class="hero-title">
         Smart<br>
         <span class="accent">
-        Pothole
+            Pothole
         </span><br>
         Reporter
     </h1>
@@ -387,9 +422,9 @@ if not st.session_state.app_started:
 
     st.markdown("""
     <p class="hero-sub">
-        Detect potholes using Gemini AI,
-        attach GPS metadata automatically,
-        and notify authorities instantly.
+        Capture road damage, verify it using Gemini AI,
+        attach live GPS coordinates, and automatically
+        notify city authorities in seconds.
     </p>
     """, unsafe_allow_html=True)
 
@@ -409,11 +444,32 @@ if not st.session_state.app_started:
 
 else:
 
-    if st.button("← Back"):
+    # ======================================
+    # TOP BAR
+    # ======================================
 
-        st.session_state.app_started = False
+    col1, col2 = st.columns([4, 1])
 
-        st.rerun()
+    with col1:
+
+        st.markdown("""
+        <h2 style="
+            font-family:Syne,sans-serif;
+            margin-top:0;
+        ">
+            🛡️ Smart Pothole Reporter
+        </h2>
+        """, unsafe_allow_html=True)
+
+    with col2:
+
+        if st.button("← Back"):
+
+            st.session_state.app_started = False
+
+            st.session_state.location_data = None
+
+            st.rerun()
 
     # ======================================
     # STEP 1 — GPS
@@ -421,15 +477,38 @@ else:
 
     st.markdown("""
     <div class="section-heading">
-        Step 1 — GPS Coordinates
+        Step 1 — Acquire GPS Coordinates
     </div>
 
     <div class="section-sub">
-        Allow browser location access.
+        Grant browser location permission.
     </div>
     """, unsafe_allow_html=True)
 
-    location_data = streamlit_geolocation()
+    # FIXED GEOLOCATION FLOW
+    if st.session_state.location_data is None:
+
+        location_data = streamlit_geolocation()
+
+        if (
+            location_data
+            and location_data.get("latitude")
+            is not None
+        ):
+
+            st.session_state.location_data = (
+                location_data
+            )
+
+            st.rerun()
+
+    location_data = (
+        st.session_state.location_data
+    )
+
+    # ======================================
+    # GPS SUCCESS
+    # ======================================
 
     if (
         location_data
@@ -445,13 +524,17 @@ else:
             f"""
             <div class="gps-box">
 
-                <strong>
-                GPS Locked
-                </strong>
+                <div style="
+                    color:#4EFFA8;
+                    font-weight:700;
+                    margin-bottom:0.3rem;
+                ">
+                    GPS Locked
+                </div>
 
-                <br><br>
-
-                {lat:.6f}, {lon:.6f}
+                <div>
+                    {lat:.6f}, {lon:.6f}
+                </div>
 
             </div>
             """,
@@ -464,20 +547,24 @@ else:
 
         st.markdown("""
         <div class="section-heading">
-            Step 2 — Capture Damage
+            Step 2 — Capture Road Damage
         </div>
 
         <div class="section-sub">
-            Take a clear image of the road.
+            Photograph the pothole clearly.
         </div>
         """, unsafe_allow_html=True)
 
         camera_photo = st.camera_input(
             "",
-            label_visibility="hidden"
+            label_visibility="collapsed"
         )
 
-        if camera_photo:
+        # ==================================
+        # IMAGE CAPTURED
+        # ==================================
+
+        if camera_photo is not None:
 
             with st.spinner(
                 "Embedding GPS metadata..."
@@ -491,10 +578,9 @@ else:
                     )
                 )
 
-                st.toast(
-                    "GPS metadata embedded.",
-                    icon="📍"
-                )
+            st.success(
+                "✅ GPS metadata embedded."
+            )
 
             st.markdown("---")
 
@@ -508,8 +594,8 @@ else:
             </div>
 
             <div class="section-sub">
-                Run Gemini AI analysis
-                and notify authorities.
+                Run Gemini AI analysis and
+                automatically notify authorities.
             </div>
             """, unsafe_allow_html=True)
 
@@ -529,10 +615,9 @@ else:
                         prompt = (
                             "You are a strict city "
                             "infrastructure monitoring system. "
-                            "Analyze this image carefully. "
-                            "Determine whether there is a "
-                            "real pothole or severe "
-                            "road damage visible. "
+                            "Determine whether this image "
+                            "contains a real pothole or "
+                            "severe road damage. "
                             "Reply ONLY using: "
                             "'YES: explanation' "
                             "or "
@@ -653,15 +738,20 @@ else:
                 else:
 
                     st.success(
-                        "🌿 No road damage detected."
+                        "🌿 No pothole detected."
                     )
+
+    # ======================================
+    # WAITING FOR GPS
+    # ======================================
 
     else:
 
         st.markdown("""
         <div style="
             background:#1C1C1C;
-            border-radius:18px;
+            border:1px solid rgba(255,255,255,0.08);
+            border-radius:20px;
             padding:1.5rem;
             text-align:center;
             margin-top:1rem;
@@ -675,14 +765,16 @@ else:
             </div>
 
             <p style="
-                font-weight:bold;
-                margin-bottom:0.5rem;
+                font-weight:700;
+                margin-bottom:0.4rem;
+                color:white;
             ">
                 Waiting for GPS Access
             </p>
 
             <p style="
-                color:#999999;
+                color:#9A9A9A;
+                margin:0;
             ">
                 Allow browser location permission
                 to continue.
