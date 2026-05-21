@@ -31,7 +31,7 @@ except KeyError:
     st.stop()
 
 genai.configure(api_key=GEMINI_API_KEY)
-model = genai.GenerativeModel('gemini-1.5-flash')
+model = genai.GenerativeModel('gemini-2.5-flash')
 
 # ==========================================
 # 3. GLOBAL STYLES — injected once at top
@@ -550,108 +550,125 @@ else:
 
             st.markdown("<hr class='rule'>", unsafe_allow_html=True)
 
+          
             # ── STEP 3: Analyse ──
-            # ── STEP 3: Analyse ──
-st.markdown("""
-<div class="section-heading">Step 3 — Analyse & Dispatch</div>
-<p class="section-sub">
-Run the image through Gemini AI. If a pothole is confirmed,
-a report is emailed automatically.
-</p>
-""", unsafe_allow_html=True)
+            st.markdown("""
+            <div class="section-heading">Step 3 — Analyse & Dispatch</div>
+            <p class="section-sub">
+            Run the image through Gemini AI. If a pothole is confirmed,
+            a report is emailed automatically.
+            </p>
+            """, unsafe_allow_html=True)
 
-if st.button("🚀 Analyse & Send Report", use_container_width=True):
+            if st.button(
+                "🚀 Analyse & Send Report",
+                use_container_width=True
+            ):
 
-    with st.spinner("Sending frame to Gemini AI…"):
+                with st.spinner("Sending frame to Gemini AI…"):
 
-        try:
-            # Reset image buffer
-            geotagged_image_file.seek(0)
+                    try:
+                        geotagged_image_file.seek(0)
 
-            prompt = (
-                "You are a strict city infrastructure monitoring system. "
-                "Analyze this image carefully. "
-                "Determine whether there is a real pothole, cracked asphalt, "
-                "or severe road surface damage visible. "
-                "Reply ONLY in this format: "
-                "'YES: explanation' or 'NO: explanation'."
-            )
+                        prompt = (
+                            "You are a strict city infrastructure "
+                            "monitoring system. "
+                            "Analyze this image carefully. "
+                            "Determine whether there is a real pothole, "
+                            "cracked asphalt, or severe road surface "
+                            "damage visible. "
+                            "Reply ONLY in this format: "
+                            "'YES: explanation' or "
+                            "'NO: explanation'."
+                        )
 
-            response = model.generate_content(
-                [
-                    prompt,
-                    {
-                        "mime_type": "image/jpeg",
-                        "data": geotagged_image_file.getvalue()
-                    }
-                ]
-            )
+                        response = model.generate_content(
+                            [
+                                prompt,
+                                {
+                                    "mime_type": "image/jpeg",
+                                    "data": geotagged_image_file.getvalue()
+                                }
+                            ]
+                        )
 
-            verdict = response.text.strip()
+                        verdict = response.text.strip()
 
-        except Exception as e:
-            st.error(f"Gemini Analysis Error: {e}")
-            st.stop()
+                    except Exception as e:
+                        st.error(
+                            f"Gemini Analysis Error: {e}"
+                        )
+                        st.stop()
 
-    # ── Result Processing ──
-    is_pothole = verdict.upper().startswith("YES")
+                is_pothole = verdict.upper().startswith("YES")
 
-    card_class = "positive" if is_pothole else "negative"
-
-    label_text = (
-        "⚠ Pothole Detected"
-        if is_pothole
-        else "✓ No Damage Found"
-    )
-
-    label_color = (
-        "var(--danger)"
-        if is_pothole
-        else "var(--success)"
-    )
-
-    st.markdown(
-        f"""
-        <div class="result-card {card_class}">
-            <div class="result-label" style="color:{label_color}">
-                {label_text}
-            </div>
-
-            <div class="result-text">
-                {verdict}
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-
-    # ── Email Dispatch ──
-    if is_pothole:
-
-        with st.spinner(
-            "Dispatching secure alert to authority inbox…"
-        ):
-
-            try:
-                send_notification_email(lat, lon, verdict)
-
-                st.balloons()
-
-                st.success(
-                    "📩 Alert dispatched successfully. "
-                    "Authorities have been notified."
+                card_class = (
+                    "positive"
+                    if is_pothole
+                    else "negative"
                 )
 
-            except Exception as e:
-                st.error(
-                    f"SMTP error — could not send email: {e}"
+                label_text = (
+                    "⚠ Pothole Detected"
+                    if is_pothole
+                    else "✓ No Damage Found"
                 )
 
-    else:
-        st.success(
-            "🌿 No structural failure confirmed. "
-            "No alert triggered.")
-    
+                label_color = (
+                    "var(--danger)"
+                    if is_pothole
+                    else "var(--success)"
+                )
+
+                st.markdown(
+                    f"""
+                    <div class="result-card {card_class}">
+                        <div class="result-label"
+                             style="color:{label_color}">
+                            {label_text}
+                        </div>
+
+                        <div class="result-text">
+                            {verdict}
+                        </div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
+
+                if is_pothole:
+
+                    with st.spinner(
+                        "Dispatching secure alert "
+                        "to authority inbox…"
+                    ):
+
+                        try:
+                            send_notification_email(
+                                lat,
+                                lon,
+                                verdict
+                            )
+
+                            st.balloons()
+
+                            st.success(
+                                "📩 Alert dispatched "
+                                "successfully. "
+                                "Authorities have been notified."
+                            )
+
+                        except Exception as e:
+                            st.error(
+                                f"SMTP error — "
+                                f"could not send email: {e}"
+                            )
+
+                else:
+                    st.success(
+                        "🌿 No structural failure "
+                        "confirmed. No alert triggered."
+                    )
 else:
         st.markdown("""
         <div style="background:var(--surface-card);border:1px solid var(--border);
