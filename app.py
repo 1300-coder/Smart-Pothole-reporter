@@ -6,11 +6,6 @@ DESCRIPTION:
     live GPS telemetry, Gemini AI analysis, and automated email dispatch.
 """
 
-"""
-PROJECT: Smart Pothole Reporter (Competition Edition)
-AUTHOR: High School AI Developer
-"""
-
 # ==========================================
 # IMPORTS
 # ==========================================
