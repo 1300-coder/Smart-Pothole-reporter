@@ -651,7 +651,8 @@ if st.button("🚀 Analyse & Send Report", use_container_width=True):
         st.success(
             "🌿 No structural failure confirmed. "
             "No alert triggered.")
-    else:
+    
+else:
         st.markdown("""
         <div style="background:var(--surface-card);border:1px solid var(--border);
         border-radius:var(--radius-lg);padding:1.5rem;text-align:center;margin-top:0.5rem">
